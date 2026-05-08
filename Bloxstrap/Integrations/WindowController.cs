@@ -314,7 +314,12 @@ namespace Bloxstrap.Integrations
             if (!curUniverseAllowed && (message.Command != "RequestWindowPermission" || prevUniverse == _activityWatcher.Data.UniverseId) && message.Command != "SetWindowTitle") { return; }
             
             // to avoid people saving the windows position or size to another place when startwindow is called later
-            if (!enabled && message.Command != "RequestWindowPermission" && message.Command != "SetWindowTitle" && message.Command != "StartWindow") { return; }
+            if (
+                !enabled &&
+                message.Command != "RequestWindowPermission" &&
+                message.Command != "SetWindowTitle" &&
+                message.Command != "StartWindow"
+            ) { return; }
             
             // NOTE: if a command has multiple aliases, use the first one that shows up, the others are just for compatibility and may be removed in the future
             switch (message.Command)
@@ -461,6 +466,20 @@ namespace Bloxstrap.Integrations
                         SetBorderless(windowData.Enabled ?? false);
                         changedWindow = true;
 
+                        break;
+                    }
+                case "SetWallpaper":
+                    {
+
+                        WallpaperMessage? wallpaperData = Deserialize<WallpaperMessage>(message);
+
+                        if (wallpaperData is null)
+                        {
+                            App.Logger.WriteLine(LOG_IDENT, "grtfeu");
+                            return;
+                        }
+
+                        WallpaperController.SetWallpaper(wallpaperData);
                         break;
                     }
                 case "SendNotification":
