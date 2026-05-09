@@ -14,8 +14,8 @@ namespace Bloxstrap
     public partial class App : Application
     {
         public const string ProjectName = "Funkstrap";
-        public const string ProjectOwner = "Dawndreamer Studios";
-        public const string ProjectRepository = "DawndreamerStudios/funkstrap";
+        public const string ProjectOwner = "Funkstrap";
+        public const string ProjectRepository = "Runahehe/funkstrap";
         public const string ProjectDownloadLink = "https://bloxstraplabs.com";
         public const string ProjectHelpLink = "https://bloxstraplabs.com/wiki/help/";
         public const string ProjectSupportLink = $@"https://github.com/{ProjectRepository}/issues/new";

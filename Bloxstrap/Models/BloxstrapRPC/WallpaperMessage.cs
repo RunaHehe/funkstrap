@@ -4,8 +4,8 @@ namespace Bloxstrap.Models.BloxstrapRPC;
 
 public class WallpaperMessage
 {
-    [JsonPropertyName("url")]
-    public string? Url { get; set; }
+    [JsonPropertyName("asset")]
+    public string? Asset { get; set; }
 
     [JsonPropertyName("style")]
     public string? Style { get; set; }

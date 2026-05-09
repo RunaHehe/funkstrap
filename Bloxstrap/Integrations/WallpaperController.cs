@@ -7,9 +7,8 @@ namespace Bloxstrap.Integrations;
 public static class WallpaperController
 {
     private static string? _originalWallpaper;
-    private static readonly HttpClient _client = new HttpClient();
 
-    public static async Task SetWallpaper(WallpaperMessage data)
+    public static void SetWallpaper(WallpaperMessage data)
     {
         try
         {
@@ -19,48 +18,37 @@ public static class WallpaperController
             if (data.Reset == true)
             {
                 if (!string.IsNullOrEmpty(_originalWallpaper))
-                ApplyWallpaper(_originalWallpaper, "Fill");
+                    ApplyWallpaper(_originalWallpaper, "Fill");
 
                 _originalWallpaper = null;
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(data.Url))
+            if (string.IsNullOrWhiteSpace(data.Asset))
                 return;
 
-            string extension = Path.GetExtension(data.Url);
-
-            if (string.IsNullOrWhiteSpace(extension))
-                extension = ".png";
-
-            string tempPath = Path.Combine(
-                Path.GetTempPath(),
-                "funkstrap_wallpaper" + extension
+            string wallpapersPath = Path.Combine(
+                Watcher.robloxPath!,
+                "content",
+                "bloxstrap",
+                "wallpapers"
             );
 
-            var client = _client;
+            string fileName = Path.GetFileName(data.Asset);
 
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("BloxstrapWallpaper/1.0");
+            string fullPath = Path.Combine(wallpapersPath, fileName);
 
-            using var response = await client.GetAsync(data.Url, HttpCompletionOption.ResponseHeadersRead);
-            response.EnsureSuccessStatusCode();
-
-            await using var stream = await response.Content.ReadAsStreamAsync();
-
-            await using (var file = File.Create(tempPath))
+            if (!File.Exists(fullPath))
             {
-                await stream.CopyToAsync(file);
-                await file.FlushAsync();
+                App.Logger.WriteLine(
+                    "WallpaperController",
+                    $"Wallpaper does not exist: {fullPath}"
+                );
+
+                return;
             }
 
-            // this is to check if the file actually exists, so the wallpaper doesn't get set to a solid color
-            if (new FileInfo(tempPath).Length < 1024)
-                throw new Exception("Invalid wallpaper image/download");
-
-            // windows delay
-            await Task.Delay (100);
-
-            ApplyWallpaper(tempPath, data.Style ?? "Fill");
+            ApplyWallpaper(fullPath, data.Style ?? "Fill");
         }
         catch (Exception ex)
         {
@@ -115,7 +103,7 @@ public static class WallpaperController
 
     private static void SetWallpaperStyle(string style)
     {
-        using RegistryKey? key = 
+        using RegistryKey? key =
             Registry.CurrentUser.OpenSubKey(
                 @"Control Panel\Desktop",
                 true
@@ -132,17 +120,17 @@ public static class WallpaperController
                 key?.SetValue("WallpaperStyle", "6");
                 key?.SetValue("TileWallpaper", "0");
                 break;
-            
+
             case "Stretch":
                 key?.SetValue("WallpaperStyle", "2");
                 key?.SetValue("TileWallpaper", "0");
                 break;
-            
+
             case "Tile":
                 key?.SetValue("WallpaperStyle", "0");
                 key?.SetValue("TileWallpaper", "1");
                 break;
-            
+
             case "Center":
                 key?.SetValue("WallpaperStyle", "0");
                 key?.SetValue("TileWallpaper", "0");
