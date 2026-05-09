@@ -30,6 +30,8 @@ namespace Bloxstrap.Integrations
         public const long WS_BORDER = 0x00800000L;       // standard window border
         public const long WS_CAPTION = 0x00C00000L;     // title bar + border
         private const int GWL_STYLE = -16;
+        private const int SW_HIDE = 0;
+        private const int SW_SHOW = 5;
         private const long WS_THICKFRAME = 0x00040000L; // resizable frame
         private const long WS_SYSMENU = 0x00080000L;
         private const long WS_MINIMIZEBOX = 0x00020000L;
@@ -87,6 +89,10 @@ namespace Bloxstrap.Integrations
         private int screenHeight = 0;
 
         private bool changedWindow = false;
+
+        // desktop icons & taskbar n such
+        private bool _desktopTaskbarVisible = true;
+        private bool _desktopIconsVisible = true;
 
         // cache last data to prevent bloating
         private int _lastX = 0;
@@ -274,6 +280,8 @@ namespace Bloxstrap.Integrations
             }
             
             SendMessage(_currentWindow, WM_SETTEXT, IntPtr.Zero, "Roblox");
+
+            ResetDesktopVisibility();
 
             //reset window color
             if (App.Settings.Prop.CanGameChangeColor)
@@ -482,6 +490,29 @@ namespace Bloxstrap.Integrations
                         WallpaperController.SetWallpaper(wallpaperData);
                         break;
                     }
+                case "SetDesktopVisibility":
+                    {
+                        DesktopVisibilityMessage? desktopData = Deserialize<DesktopVisibilityMessage>(message);
+
+                        if (desktopData is null)
+                        {
+                            App.Logger.WriteLine(LOG_IDENT, "Failed to parse message! (JSON deserialization returned null)");
+                            return;
+                        }
+
+                        if (desktopData.Taskbar != null)
+                        {
+                            _desktopTaskbarVisible = desktopData.Taskbar.Value;
+                            SetTaskbarVisibility(_desktopTaskbarVisible);
+                        }
+
+                        if (desktopData.DesktopIcons != null)
+                        {
+                            _desktopIconsVisible = desktopData.DesktopIcons.Value;
+                            SetDesktopIconsVisibility(_desktopIconsVisible);
+                        }
+                        break;
+                    }
                 case "SendNotification":
                     {
                         WindowNotification? notifData = Deserialize<WindowNotification>(message);
@@ -538,6 +569,8 @@ namespace Bloxstrap.Integrations
         public void Dispose()
         {
             stopWindow();
+
+            ResetDesktopVisibility();
 
             if (Watcher.robloxPath != null) {
                 var idsPath = Path.Combine(Watcher.robloxPath, "content\\bloxstrap");
@@ -608,5 +641,58 @@ namespace Bloxstrap.Integrations
 
         [DllImport("user32.dll")]
         private static extern bool UpdateWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern IntPtr FindWindow(string lpClassName, string? lpWindowName);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern IntPtr FindWindowEx(
+            IntPtr parentHandle,
+            IntPtr childAfter,
+            string className,
+            string? windowTitle
+        );
+
+        [DllImport("user32.dll")]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        // taskbar desktop n shit here
+        private void SetTaskbarVisibility(bool visible)
+        {
+            IntPtr taskbar = FindWindow("Shell_TrayWnd", null);
+
+            if (taskbar != IntPtr.Zero)
+                ShowWindow(taskbar, visible ? SW_SHOW : SW_HIDE);
+        }
+
+        private void SetDesktopIconsVisibility(bool visible)
+        {
+            IntPtr progman = FindWindow("Progman", null);
+            IntPtr desktop = FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null);
+
+            if (desktop == IntPtr.Zero)
+            {
+                IntPtr workerw = IntPtr.Zero;
+
+                do
+                {
+                    workerw = FindWindowEx(IntPtr.Zero, workerw, "WorkerW", null);
+                    desktop = FindWindowEx(workerw, IntPtr.Zero, "SHELLDLL_DefView", null);
+                }
+                while (workerw != IntPtr.Zero && desktop == IntPtr.Zero);
+            }
+
+            if (desktop != IntPtr.Zero)
+                ShowWindow(desktop, visible ? SW_SHOW : SW_HIDE);
+        }
+
+        private void ResetDesktopVisibility()
+        {
+            SetTaskbarVisibility(true);
+            SetDesktopIconsVisibility(true);
+
+            _desktopTaskbarVisible = true;
+            _desktopIconsVisible = true;
+        }
     }
 }
