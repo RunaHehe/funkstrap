@@ -7,10 +7,15 @@ namespace Bloxstrap.Integrations;
 
 public static class WallpaperController
 {
+    private const int SPI_SETDESKWALLPAPER = 20;
+    private const int SPI_GETDESKWALLPAPER = 0x0073;
+    private const int SPIF_UPDATEINIFILE = 0x01;
+    private const int SPIF_SENDCHANGE = 0x02;
     private static string? _originalWallpaper;
-
     private static bool _wallpaperApps = false;
     private static readonly List<string> _closedWallpaperApps = new();
+
+    // String array of known apps (currently just Wallpaper Engine and Lively Wallpaper, as these are the main 2 everyone uses I believe)
     private static readonly string[] WallpaperProcesses =
     {
         "wallpaper32",
@@ -24,6 +29,7 @@ public static class WallpaperController
     {
         try
         {
+            // Original wallpaper so we can reset it later
             if (_originalWallpaper == null)
                 _originalWallpaper = GetCurrentWallpaper();
 
@@ -51,7 +57,6 @@ public static class WallpaperController
             );
 
             string fileName = Path.GetFileName(data.Asset);
-
             string fullPath = Path.Combine(wallpapersPath, fileName);
 
             if (!File.Exists(fullPath))
@@ -95,14 +100,13 @@ public static class WallpaperController
         {
             App.Logger.WriteLine(
                 "WallpaperController",
-                $"SystemParametersInfo FAILED YOU IDIOT!!! {Marshal.GetLastWin32Error()} | path={path}"
+                $"SystemParametersInfo failed: {Marshal.GetLastWin32Error()} | path={path}"
             );
         }
     }
 
     private static string GetCurrentWallpaper()
     {
-        const int SPI_GETDESKWALLPAPER = 0x0073;
         const int MAX_PATH = 260;
 
         var buffer = new System.Text.StringBuilder(MAX_PATH);
@@ -119,11 +123,10 @@ public static class WallpaperController
 
     private static void SetWallpaperStyle(string style)
     {
-        using RegistryKey? key =
-            Registry.CurrentUser.OpenSubKey(
-                @"Control Panel\Desktop",
-                true
-            );
+        using RegistryKey? key = Registry.CurrentUser.OpenSubKey(
+            @"Control Panel\Desktop",
+            true
+        );
 
         switch (style)
         {
@@ -184,7 +187,8 @@ public static class WallpaperController
                         _closedWallpaperApps.Add(exe);
 
                     App.Logger.WriteLine(
-                        "WallpaperController", $"Closing wallpaper app: {proc.ProcessName}"
+                        "WallpaperController",
+                        $"Closing wallpaper app: {proc.ProcessName}"
                     );
 
                     proc.CloseMainWindow();
@@ -195,7 +199,8 @@ public static class WallpaperController
                 catch (Exception ex)
                 {
                     App.Logger.WriteLine(
-                        "WallpaperController", $"Failed to close wallpaper app: {ex}"
+                        "WallpaperController",
+                        $"Failed to close wallpaper app: {ex}"
                     );
                 }
             }
@@ -213,14 +218,16 @@ public static class WallpaperController
                     Process.Start(exe);
 
                     App.Logger.WriteLine(
-                        "WallpaperController", $"Failed to restart wallpaper app: {exe}"
+                        "WallpaperController",
+                        $"Restarted wallpaper app: {exe}"
                     );
                 }
             }
             catch (Exception ex)
             {
                 App.Logger.WriteLine(
-                    "WallpaperController", $"Failed to restart wallpaper app: {ex}"
+                    "WallpaperController",
+                    $"Failed to restart wallpaper app: {ex}"
                 );
             }
         }
@@ -228,11 +235,6 @@ public static class WallpaperController
         _closedWallpaperApps.Clear();
         _wallpaperApps = false;
     }
-
-    private const int SPI_SETDESKWALLPAPER = 20;
-    private const int SPI_GETDESKWALLPAPER = 0x0073;
-    private const int SPIF_UPDATEINIFILE = 0x01;
-    private const int SPIF_SENDCHANGE = 0x02;
 
     [DllImport("user32.dll", CharSet = CharSet.Auto)]
     private static extern bool SystemParametersInfo(
