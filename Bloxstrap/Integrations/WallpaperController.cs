@@ -1,5 +1,6 @@
 using Microsoft.Win32;
 using System.Runtime.InteropServices;
+using System.Diagnostics;
 using Bloxstrap.Models.BloxstrapRPC;
 
 namespace Bloxstrap.Integrations;
@@ -7,6 +8,17 @@ namespace Bloxstrap.Integrations;
 public static class WallpaperController
 {
     private static string? _originalWallpaper;
+
+    private static bool _wallpaperApps = false;
+    private static readonly List<string> _closedWallpaperApps = new();
+    private static readonly string[] WallpaperProcesses =
+    {
+        "wallpaper32",
+        "wallpaper64",
+        "Lively",
+        "LivelyUI",
+        "Livelywpf",
+    };
 
     public static void SetWallpaper(WallpaperMessage data)
     {
@@ -20,9 +32,13 @@ public static class WallpaperController
                 if (!string.IsNullOrEmpty(_originalWallpaper))
                     ApplyWallpaper(_originalWallpaper, "Fill");
 
+                RestoreWallpaperApps();
+
                 _originalWallpaper = null;
                 return;
             }
+
+            CloseWallpaperApps();
 
             if (string.IsNullOrWhiteSpace(data.Asset))
                 return;
@@ -141,6 +157,76 @@ public static class WallpaperController
                 key?.SetValue("TileWallpaper", "0");
                 break;
         }
+    }
+
+    private static void CloseWallpaperApps()
+    {
+        if (_wallpaperApps)
+            return;
+
+        _wallpaperApps = true;
+
+        foreach (string procName in WallpaperProcesses)
+        {
+            foreach (Process proc in Process.GetProcessesByName(procName))
+            {
+                try
+                {
+                    string? exe = null;
+
+                    try
+                    {
+                        exe = proc.MainModule?.FileName;
+                    }
+                    catch { }
+
+                    if (!string.IsNullOrWhiteSpace(exe))
+                        _closedWallpaperApps.Add(exe);
+
+                    App.Logger.WriteLine(
+                        "WallpaperController", $"Closing wallpaper app: {proc.ProcessName}"
+                    );
+
+                    proc.CloseMainWindow();
+
+                    if (!proc.WaitForExit(3000))
+                        proc.Kill();
+                }
+                catch (Exception ex)
+                {
+                    App.Logger.WriteLine(
+                        "WallpaperController", $"Failed to close wallpaper app: {ex}"
+                    );
+                }
+            }
+        }
+    }
+
+    private static void RestoreWallpaperApps()
+    {
+        foreach (string exe in _closedWallpaperApps)
+        {
+            try
+            {
+                if (File.Exists(exe))
+                {
+                    Process.Start(exe);
+
+                    App.Logger.WriteLine(
+                        "WallpaperController", $"Failed to restart wallpaper app: {exe}"
+                    );
+                }
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteLine(
+                    "WallpaperController", $"Failed to restart wallpaper app: {ex}"
+                );
+            }
+        }
+
+        _closedWallpaperApps.Clear();
+        _wallpaperApps = false;
     }
 
     private const int SPI_SETDESKWALLPAPER = 20;

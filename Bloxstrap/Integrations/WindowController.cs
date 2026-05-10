@@ -20,6 +20,9 @@ namespace Bloxstrap.Integrations
         private long _windowLong = 0x00000000; // roblox's default windowlong
         private bool _foundWindow = false; // basically hwnd != 0
         private bool enabled = false; // its true if legacy mode is enabled or if startwindow is called
+        private bool _changedTaskbarVisibility = false;
+        private bool _changedDesktopIconsVisibility = false;
+        private bool _changedWallpaper = false;
 
         public const uint WM_SETTEXT = 0x000C; // set window title message
         public const int GWL_EXSTYLE = -20; // set new extended window style
@@ -283,6 +286,7 @@ namespace Bloxstrap.Integrations
             SendMessage(_currentWindow, WM_SETTEXT, IntPtr.Zero, "Roblox");
 
             ResetDesktopVisibility();
+            ResetWallpaper();
 
             //reset window color
             if (App.Settings.Prop.CanGameChangeColor)
@@ -327,7 +331,9 @@ namespace Bloxstrap.Integrations
                 !enabled &&
                 message.Command != "RequestWindowPermission" &&
                 message.Command != "SetWindowTitle" &&
-                message.Command != "StartWindow"
+                message.Command != "StartWindow" &&
+                message.Command != "SetDesktopVisibility" &&
+                message.Command != "SetWallpaper"
             ) { return; }
             
             // NOTE: if a command has multiple aliases, use the first one that shows up, the others are just for compatibility and may be removed in the future
@@ -488,6 +494,7 @@ namespace Bloxstrap.Integrations
                             return;
                         }
 
+                        _changedWallpaper = true;
                         WallpaperController.SetWallpaper(wallpaperData);
                         break;
                     }
@@ -504,12 +511,14 @@ namespace Bloxstrap.Integrations
                         if (desktopData.Taskbar != null)
                         {
                             _desktopTaskbarVisible = desktopData.Taskbar.Value;
+                            _changedTaskbarVisibility = true;
                             SetTaskbarVisibility(_desktopTaskbarVisible);
                         }
 
                         if (desktopData.DesktopIcons != null)
                         {
                             _desktopIconsVisible = desktopData.DesktopIcons.Value;
+                            _changedDesktopIconsVisibility = true;
                             SetDesktopIconsVisibility(_desktopIconsVisible);
                         }
                         break;
@@ -572,6 +581,7 @@ namespace Bloxstrap.Integrations
             stopWindow();
 
             ResetDesktopVisibility();
+            ResetWallpaper();
 
             if (Watcher.robloxPath != null) {
                 var idsPath = Path.Combine(Watcher.robloxPath, "content\\bloxstrap");
@@ -704,11 +714,32 @@ namespace Bloxstrap.Integrations
 
         private void ResetDesktopVisibility()
         {
-            SetTaskbarVisibility(true);
-            SetDesktopIconsVisibility(true);
+            if (_changedTaskbarVisibility)
+            {
+                SetTaskbarVisibility(true);
+                _changedTaskbarVisibility = false;
+                _desktopTaskbarVisible = true;
+            }
 
-            _desktopTaskbarVisible = true;
-            _desktopIconsVisible = true;
+            if (_changedDesktopIconsVisibility)
+            {
+                SetDesktopIconsVisibility(true);
+                _changedDesktopIconsVisibility = false;
+                _desktopIconsVisible = true;
+            }
+        }
+
+        private void ResetWallpaper()
+        {
+            if (_changedWallpaper)
+            {
+                WallpaperController.SetWallpaper(new WallpaperMessage
+                {
+                    Reset = true
+                });
+
+                _changedWallpaper = false;
+            }
         }
     }
 }
