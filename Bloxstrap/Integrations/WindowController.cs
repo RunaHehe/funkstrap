@@ -32,6 +32,7 @@ namespace Bloxstrap.Integrations
         private const int GWL_STYLE = -16;
         private const int SW_HIDE = 0;
         private const int SW_SHOW = 5;
+        private const int SW_SHOWNA = 8;
         private const long WS_THICKFRAME = 0x00040000L; // resizable frame
         private const long WS_SYSMENU = 0x00080000L;
         private const long WS_MINIMIZEBOX = 0x00020000L;
@@ -663,27 +664,42 @@ namespace Bloxstrap.Integrations
 
             if (taskbar != IntPtr.Zero)
                 ShowWindow(taskbar, visible ? SW_SHOW : SW_HIDE);
+
+            IntPtr secondary = IntPtr.Zero;
+
+            while ((secondary = FindWindowEx(IntPtr.Zero, secondary, "Shell_SecondaryTrayWnd", null)) != IntPtr.Zero)
+            {
+                ShowWindow(secondary, visible ? SW_SHOW : SW_HIDE);
+            }
         }
 
         private void SetDesktopIconsVisibility(bool visible)
         {
-            IntPtr progman = FindWindow("Progman", null);
-            IntPtr desktop = FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null);
+            IntPtr desktopWnd;
 
-            if (desktop == IntPtr.Zero)
+            IntPtr progman = FindWindow("Progman", null);
+            desktopWnd = FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null);
+
+            if (desktopWnd == IntPtr.Zero)
             {
                 IntPtr workerw = IntPtr.Zero;
 
                 do
                 {
                     workerw = FindWindowEx(IntPtr.Zero, workerw, "WorkerW", null);
-                    desktop = FindWindowEx(workerw, IntPtr.Zero, "SHELLDLL_DefView", null);
+                    desktopWnd = FindWindowEx(workerw, IntPtr.Zero, "SHELLDLL_DefView", null);
                 }
-                while (workerw != IntPtr.Zero && desktop == IntPtr.Zero);
+                while (workerw != IntPtr.Zero && desktopWnd == IntPtr.Zero);
             }
 
-            if (desktop != IntPtr.Zero)
-                ShowWindow(desktop, visible ? SW_SHOW : SW_HIDE);
+            if (desktopWnd != IntPtr.Zero)
+            {
+                // icon stuff
+                IntPtr listView = FindWindowEx(desktopWnd, IntPtr.Zero, "SysListView32", "FolderView");
+
+                if (listView != IntPtr.Zero)
+                    ShowWindow(listView, visible ? SW_SHOWNA : SW_HIDE);
+            }
         }
 
         private void ResetDesktopVisibility()
