@@ -1,3 +1,8 @@
+--[[ REMOVE THIS LINE AFTER
+Wallpaper + Taskbar updates were made by Sosa, and a bit edited by me (Runa! :3)
+]]
+
+
 -- BloxstrapRPC Helper Module v1.0.1
 -- Written by pizzaboxer (@xtremeguy2256) and Epix (@ElusiveEpix)
 -- Types reflected from https://github.com/pizzaboxer/bloxstrap/tree/main/Bloxstrap/Models/BloxstrapRPC
@@ -38,16 +43,28 @@ export type WindowData = {
 	reset: boolean?,
 }
 
+export type WindowColor = {
+	caption: string?,
+	border:	string?,
+	reset: boolean?,
+}
+
+export type WallpaperData = {
+	asset: string?, 
+	style: string?, -- "Fill", "Fit", "Stretch", "Tile", "Center", "Span" (Defaults to Fill)
+	reset: boolean?, -- When true it restores the wallpaper that was set before the first call to SetWallpaper this session
+}
+
+export type DesktopData = {
+	taskbar: boolean?,
+	desktopIcons: boolean?,
+	reset: boolean?,
+}
+
 export type WindowTransparencyData = {
 	transparency: number?;
 	color: Color3|string?;
 	useAlpha: boolean?;
-}
-
-export type WindowColor = {
-	caption:		string?,
-	border:			string?,
-	reset:			boolean?,
 }
 
 --[=[
@@ -67,7 +84,7 @@ end
 ]=]
 function BloxstrapRPC.SendMessage(command: string, data: any)
 	if isStudio then return end;
-	
+
 	local json = HttpService:JSONEncode({
 		command = command,
 		data = data,
@@ -151,27 +168,29 @@ end
 local bloxstrapEnabledContent = "rbxasset://bloxstrap/enabled.png";
 local gameAllowedContent = `rbxasset://bloxstrap/{game.GameId}.png`;
 
-local function onWindowDataLoaded()
-	local editable;
-	local windowSettings;
-	pcall(function()
-		editable = game:GetService("AssetService"):CreateEditableImageAsync(Content.fromUri(gameAllowedContent));
-		windowSettings = editable:ReadPixelsBuffer(Vector2.zero,Vector2.new(3,1))
-	end)
-	
-	if windowSettings then
-		pcall(function()
-			BloxstrapRPC.WindowSettings = {
-				Control = buffer.readu8(windowSettings,0+3) == 255;
-				Title = buffer.readu8(windowSettings,4+3) == 255;
-				Transparency = buffer.readu8(windowSettings,8+3) == 255;
-			}
-			print("[Debug] Imported settings from Bloxstrap",buffer.readu8(windowSettings,0+3) == 255,buffer.readu8(windowSettings,4+3) == 255,buffer.readu8(windowSettings,8+3) == 255)
-		end)
-		editable:Destroy();
-		editable = nil;
-	end
-end
+--Being forced until brandon enabled EditableImages (IF he can)
+
+--local function onWindowDataLoaded()
+--	local editable;
+--	local windowSettings;
+--	pcall(function()
+--		editable = game:GetService("AssetService"):CreateEditableImageAsync(Content.fromUri(gameAllowedContent));
+--		windowSettings = editable:ReadPixelsBuffer(Vector2.zero,Vector2.new(3,1))
+--	end)
+
+--	if windowSettings then
+--		pcall(function()
+--			BloxstrapRPC.WindowSettings = {
+--				Control = buffer.readu8(windowSettings,0+3) == 255;
+--				Title = buffer.readu8(windowSettings,4+3) == 255;
+--				Transparency = buffer.readu8(windowSettings,8+3) == 255;
+--			}
+--			print("[Debug] Imported settings from Bloxstrap",buffer.readu8(windowSettings,0+3) == 255,buffer.readu8(windowSettings,4+3) == 255,buffer.readu8(windowSettings,8+3) == 255)
+--		end)
+--		editable:Destroy();
+--		editable = nil;
+--	end
+--end
 
 ContentProvider:PreloadAsync({bloxstrapEnabledContent,gameAllowedContent});
 ContentProvider:Preload(bloxstrapEnabledContent);
@@ -181,26 +200,18 @@ BloxstrapRPC.UsesBloxstrap = ContentProvider:GetAssetFetchStatus(bloxstrapEnable
 BloxstrapRPC.AllowsWindowControl = BloxstrapRPC.UsesBloxstrap and (ContentProvider:GetAssetFetchStatus(gameAllowedContent) == Enum.AssetFetchStatus.Success);
 BloxstrapRPC.WindowStarted = false; -- Replicates the method whitelist on window control methods when StartWindow is not called (only allows SetTitle)
 
-BloxstrapRPC.WindowSettings = {
-	Control = nil;
-	Title = nil;
-	Transparency = nil;
-}
-
 if BloxstrapRPC.UsesBloxstrap and not BloxstrapRPC.AllowsWindowControl then
 	local fetchStatusChanged : RBXScriptConnection; fetchStatusChanged = ContentProvider:GetAssetFetchStatusChangedSignal(gameAllowedContent):Connect(function(status : Enum.AssetFetchStatus)
 		if status == Enum.AssetFetchStatus.Success then
 			fetchStatusChanged:Disconnect(); 
 			fetchStatusChanged = nil; 
-			
+
 			BloxstrapRPC.AllowsWindowControl = true;
 			print("[Bloxstrap] Allowed window control");
-			
-			onWindowDataLoaded();
+
+			--		onWindowDataLoaded();
 		end
 	end)
-elseif BloxstrapRPC.AllowsWindowControl then
-	onWindowDataLoaded();
 end
 
 function BloxstrapRPC.CheckWindowPermission()
@@ -324,7 +335,7 @@ function BloxstrapRPC.SetTransparency(data:WindowTransparencyData)
 
 	if typeof(diff.color) == "Color3" then
 		local hexColor = diff.color:ToHex();
-		
+
 		-- 0xbbggrr
 		diff.color = "0x"..(string.sub(hexColor,5,6)..string.sub(hexColor,3,4)..string.sub(hexColor,1,2));
 	end
@@ -362,15 +373,93 @@ function BloxstrapRPC.SetWindowColor(data:WindowColor)
 	BloxstrapRPC.SendMessage("SetWindowColor", data)
 end
 
-for _,func in {"ShowPopup","RemoveWindows","CreateWindow","SetWindowDefault","ShowWindow"} do
+local VALID_WALLPAPER_STYLES = {
+	Fill = true,
+	Fit = true,
+	Stretch = true,
+	Tile = true,
+	Center = true,
+	Span = true,
+}
+
+function BloxstrapRPC.SetWallpaper(data: WallpaperData)
+	if not BloxstrapRPC.UsesBloxstrap then
+		return
+	end
+
+	if data.reset then
+		BloxstrapRPC.SendMessage("SetWallpaper", {
+			reset = true
+		})
+		return
+	end
+
+	if type(data.asset) ~= "string" or data.asset == "" then
+		warn("[BloxstrapRPC] SetWallpaper: 'asset' must be a non-empty string.")
+		return
+	end
+
+	if string.find(data.asset, "..", 1, true) -- Wallpapers are preloaded into %LOCALAPPDATA%\Funkstrap\Versions\version-versionhashhere\content\bloxstrap\wallpapers
+		or string.find(data.asset, "/", 1, true)
+		or string.find(data.asset, "\\", 1, true) then
+		warn("[BloxstrapRPC] Invalid wallpaper asset path.")
+		return
+	end
+
+	--[[ I ran outta room, wallpapers are set by typing "1.png" into the "asset" variable of SetWallpaper (change to the actual image name duhh)
+	Soon this'll be updated so it downloads the images from RBLX assetIds the first time it is called, and then have it read from appdata from then on, since it is already saved.
+	I'm tired man fuck ts
+	]]
+
+	if data.style ~= nil and not VALID_WALLPAPER_STYLES[data.style] then
+		data.style = "Fill"
+	elseif data.style == nil then
+		data.style = "Fill"
+	end
+
+	BloxstrapRPC.SendMessage("SetWallpaper", {
+		asset = data.asset,
+		style = data.style,
+	})
+end
+
+function BloxstrapRPC.ResetWallpaper()
+	if not BloxstrapRPC.UsesBloxstrap then return end;
+	BloxstrapRPC.SendMessage("SetWallpaper", { reset = true })
+end
+
+function BloxstrapRPC.SetDesktopVisibility(data: DesktopData)
+	if not BloxstrapRPC.AllowsWindowControl then return end
+
+	if data.reset then
+		BloxstrapRPC.SendMessage("SetDesktopVisibility", { reset = true });
+		return;
+	end
+
+	local payload = {};
+	if data.taskbar ~= nil then payload.taskbar = data.taskbar end;
+	if data.desktopIcons ~= nil then payload.desktopIcons = data.desktopIcons end;
+
+	if next(payload) then
+		BloxstrapRPC.SendMessage("SetDesktopVisibility", payload);
+	end
+end
+
+function BloxstrapRPC.ResetDesktopVisibility()
+	if not BloxstrapRPC.AllowsWindowControl then return end
+
+	BloxstrapRPC.SendMessage("SetDesktopVisibility", { reset = true });
+end
+
+for _,func in {"SendNotification","ShowPopup","RemoveWindows","CreateWindow","SetWindowDefault","ShowWindow","SetWindowColor"} do
 	BloxstrapRPC[func] = function()
-		warn(`[BloxstrapRPC :: {func}] This function is not functional yet`)
+		warn("THIS FUNCTION DOES NOT WORK OUTSIDE OF A FORK OF THE FORK!!!!")
 	end
 end
 
 BloxstrapRPC.RestoreWindow = BloxstrapRPC.ResetWindow;
 
 BloxstrapRPC.ResetTitle();
-BloxstrapRPC.ResetRPC(true);
+--BloxstrapRPC.ResetRPC(true);
 
 return BloxstrapRPC;
