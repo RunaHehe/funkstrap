@@ -3,11 +3,12 @@ using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using Windows.Win32.Foundation;
 using Message = Bloxstrap.Models.BloxstrapRPC.Message;
-public struct WindowRect {
-   public int Left { get; set; }
-   public int Top { get; set; }
-   public int Right { get; set; }
-   public int Bottom { get; set; }
+public struct WindowRect
+{
+    public int Left { get; set; }
+    public int Top { get; set; }
+    public int Right { get; set; }
+    public int Bottom { get; set; }
 }
 
 namespace Bloxstrap.Integrations
@@ -126,8 +127,8 @@ namespace Bloxstrap.Integrations
         {
             _activityWatcher = activityWatcher;
             _activityWatcher.OnRPCMessage += (_, message) => OnMessage(message);
-            _activityWatcher.OnGameLeave += (_,_) => { prevUniverse = 0; stopWindow(); };
-            _activityWatcher.OnGameJoin += (_,_) => updateExposedPerms();
+            _activityWatcher.OnGameLeave += (_, _) => { prevUniverse = 0; stopWindow(); };
+            _activityWatcher.OnGameJoin += (_, _) => updateExposedPerms();
 
             _lastSCWidth = defaultScreenWidth;
             _lastSCHeight = defaultScreenHeight;
@@ -141,13 +142,14 @@ namespace Bloxstrap.Integrations
             updateExposedPerms();
         }
 
-        public void requestPermission(long universeId = -1) {
+        public void requestPermission(long universeId = -1)
+        {
             if (universeId == -1) { universeId = _activityWatcher.Data.UniverseId; }
             if (App.Settings.Prop.WindowAllowedUniverses.Contains(universeId)) { return; } // already has perms
             if (App.Settings.Prop.WindowBlacklistedUniverses.Contains(universeId)) { return; } // already has been denied perms
             if (prevUniverse == universeId) { return; }
             prevUniverse = universeId;
-            
+
             if (_menuContainer == null)
                 _menuContainer = _activityWatcher.watcher._notifyIcon?._menuContainer;
 
@@ -158,19 +160,22 @@ namespace Bloxstrap.Integrations
                     _menuContainer.ShowWindowPermissionWindow();
                 });
             }
-            
+
         }
 
-        public void updateExposedPerms() { // so other universes dont see other places allowed perms (basically remove all pngs and then add the universe one)
+        public void updateExposedPerms()
+        { // so other universes dont see other places allowed perms (basically remove all pngs and then add the universe one)
             if (Watcher.robloxPath == null) { return; }
-            
+
             var idsPath = Path.Combine(Watcher.robloxPath, "content\\bloxstrap");
-            if (Directory.Exists(idsPath)) {
+            if (Directory.Exists(idsPath))
+            {
                 var directory = new DirectoryInfo(idsPath);
                 // clear
-                foreach(FileInfo file in directory.GetFiles()) if (file.Name!="enabled.png") file.Delete();
-            } else { Directory.CreateDirectory(idsPath); }
-            
+                foreach (FileInfo file in directory.GetFiles()) if (file.Name != "enabled.png") file.Delete();
+            }
+            else { Directory.CreateDirectory(idsPath); }
+
             var currentUniverse = _activityWatcher.Data.UniverseId;
 
             curUniverseAllowed = App.Settings.Prop.WindowAllowAll || isGameAllowed(currentUniverse);
@@ -184,21 +189,26 @@ namespace Bloxstrap.Integrations
             bitmap.Save(Path.Combine(idsPath, $"{currentUniverse}.png"), System.Drawing.Imaging.ImageFormat.Png);
         }
 
-        public bool isGameAllowed(long universeId = -1) {
-            if (universeId==-1) { universeId = _activityWatcher.Data.UniverseId; }
+        public bool isGameAllowed(long universeId = -1)
+        {
+            if (universeId == -1) { universeId = _activityWatcher.Data.UniverseId; }
 
             return App.Settings.Prop.WindowAllowedUniverses.Contains(universeId);
         }
 
-        public void updateState(bool state) {
+        public void updateState(bool state)
+        {
             enabled = state;
-            if (!enabled) { // stop stuff
+            if (!enabled)
+            { // stop stuff
                 stopWindow();
             }
         }
 
-        public void updateWinMonitor() {
-            if (App.Settings.Prop.WindowMonitorStyle == WindowMonitorStyle.All) {
+        public void updateWinMonitor()
+        {
+            if (App.Settings.Prop.WindowMonitorStyle == WindowMonitorStyle.All)
+            {
                 screenWidth = SystemInformation.VirtualScreen.Width;
                 screenHeight = SystemInformation.VirtualScreen.Height;
 
@@ -207,8 +217,8 @@ namespace Bloxstrap.Integrations
 
                 Screen primaryScreen = Screen.PrimaryScreen;
 
-                widthMult = primaryScreen.Bounds.Width/((float)screenWidth);
-                heightMult = primaryScreen.Bounds.Height/((float)screenHeight);
+                widthMult = primaryScreen.Bounds.Width / ((float)screenWidth);
+                heightMult = primaryScreen.Bounds.Height / ((float)screenHeight);
                 return;
             }
 
@@ -221,7 +231,8 @@ namespace Bloxstrap.Integrations
             monitorY = curScreen.Bounds.Y;
         }
 
-        public void onWindowFound() {
+        public void onWindowFound()
+        {
             const string LOG_IDENT = "WindowController::onWindowFound";
 
             saveWindow();
@@ -240,15 +251,17 @@ namespace Bloxstrap.Integrations
             }
         }
 
-        public void stopWindow() {
+        public void stopWindow()
+        {
             _activityWatcher.delay = 250; // reset delay
             resetWindow();
         }
 
         // not recommended to be used as a save point for in-game movement, just as a save point between manipulation start and end
-        public void saveWindow() {
+        public void saveWindow()
+        {
             WindowRect winRect = new WindowRect();
-            GetWindowRect(_currentWindow, ref winRect);   
+            GetWindowRect(_currentWindow, ref winRect);
 
             // these positions are in virtualscreen space (returns pos in whole screen not in the monitor they are in) 
             _lastX = winRect.Left;
@@ -264,8 +277,10 @@ namespace Bloxstrap.Integrations
             updateWinMonitor();
         }
 
-        public void resetWindow() {
-            if (changedWindow) {
+        public void resetWindow()
+        {
+            if (changedWindow)
+            {
                 _lastX = _startingX;
                 _lastY = _startingY;
                 _lastWidth = _startingWidth;
@@ -276,13 +291,13 @@ namespace Bloxstrap.Integrations
                 _lastTransparencyMode = LWA_COLORKEY;
 
                 // reset sets to defaults on the monitor it was found at the start
-                MoveWindow(_currentWindow,_startingX,_startingY,_startingWidth,_startingHeight,false);
+                MoveWindow(_currentWindow, _startingX, _startingY, _startingWidth, _startingHeight, false);
                 SetWindowLong(_currentWindow, GWL_EXSTYLE, _windowLong);
                 SetBorderless(false);
 
                 changedWindow = false;
             }
-            
+
             SendMessage(_currentWindow, WM_SETTEXT, IntPtr.Zero, "Roblox");
 
             ResetDesktopVisibility();
@@ -311,21 +326,23 @@ namespace Bloxstrap.Integrations
             UpdateWindow(_currentWindow);
         }
 
-        public void OnMessage(Message message) {
+        public void OnMessage(Message message)
+        {
             const string LOG_IDENT = "WindowController::OnMessage";
 
             // try to find window now
-            if (!_foundWindow) {
+            if (!_foundWindow)
+            {
                 _currentWindow = FindWindow();
                 _foundWindow = !(_currentWindow == IntPtr.Zero);
 
                 if (_foundWindow) { onWindowFound(); }
             }
 
-            if (_currentWindow == IntPtr.Zero) {return;}
+            if (_currentWindow == IntPtr.Zero) { return; }
 
             if (!curUniverseAllowed && (message.Command != "RequestWindowPermission" || prevUniverse == _activityWatcher.Data.UniverseId) && message.Command != "SetWindowTitle") { return; }
-            
+
             // to avoid people saving the windows position or size to another place when startwindow is called later
             if (
                 !enabled &&
@@ -335,7 +352,7 @@ namespace Bloxstrap.Integrations
                 message.Command != "SetDesktopVisibility" &&
                 message.Command != "SetWallpaper"
             ) { return; }
-            
+
             // NOTE: if a command has multiple aliases, use the first one that shows up, the others are just for compatibility and may be removed in the future
             switch (message.Command)
             {
@@ -583,13 +600,15 @@ namespace Bloxstrap.Integrations
             ResetDesktopVisibility();
             ResetWallpaper();
 
-            if (Watcher.robloxPath != null) {
+            if (Watcher.robloxPath != null)
+            {
                 var idsPath = Path.Combine(Watcher.robloxPath, "content\\bloxstrap");
-                if (Directory.Exists(idsPath)) {
+                if (Directory.Exists(idsPath))
+                {
                     Directory.Delete(idsPath, true);
                 }
             }
-            
+
             GC.SuppressFinalize(this);
         }
 
@@ -602,7 +621,8 @@ namespace Bloxstrap.Integrations
                 Process? processById = Watcher.processId != null ? Process.GetProcessById((int)Watcher.processId) : null;
                 if (processById != null)
                     return processById.MainWindowHandle;
-            } catch { }
+            }
+            catch { }
 
             //Check the window title as a fallback
             Process[] tempProcesses;

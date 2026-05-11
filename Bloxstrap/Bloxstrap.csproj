@@ -19,7 +19,7 @@
     <Company>Dawndreamer Studios</Company>
     <ApplicationTitle>Funkstrap</ApplicationTitle>
   </PropertyGroup>
-    
+
   <ItemGroup>
     <Resource Include="Bloxstrap.ico" />
     <Resource Include="Resources\Fonts\NotoSansThai-VariableFont_wdth,wght.ttf" />
@@ -109,7 +109,8 @@
 
   <Target Name="AddBuildMetadataAttribute" AfterTargets="ResolveGitCommitInfo" BeforeTargets="CoreGenerateAssemblyInfo" Condition="'$(CommitHash)' != '' AND '$(CommitRef)' != '' AND '$(CommitHash)' != 'unknown'">
     <ItemGroup>
-      <AssemblyAttribute Remove="Bloxstrap.Models.Attributes.BuildMetadataAttribute" /> <!-- just incase its there already -->
+      <AssemblyAttribute Remove="Bloxstrap.Models.Attributes.BuildMetadataAttribute" />
+      <!-- just incase its there already -->
       <AssemblyAttribute Include="Bloxstrap.Models.Attributes.BuildMetadataAttribute">
         <_Parameter1>$([System.DateTime]::UtcNow.ToString("s"))Z</_Parameter1>
         <_Parameter2>$(COMPUTERNAME)\$(USERNAME)</_Parameter2>
