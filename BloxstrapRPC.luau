@@ -451,7 +451,7 @@ function BloxstrapRPC.ResetDesktopVisibility()
 	BloxstrapRPC.SendMessage("SetDesktopVisibility", { reset = true });
 end
 
-for _,func in {"SendNotification","ShowPopup","RemoveWindows","CreateWindow","SetWindowDefault","ShowWindow","SetWindowColor"} do
+for _,func in {"ShowPopup","RemoveWindows","CreateWindow","SetWindowDefault","ShowWindow","SetWindowColor"} do
 	BloxstrapRPC[func] = function()
 		warn("THIS FUNCTION DOES NOT WORK OUTSIDE OF A FORK OF THE FORK!!!!")
 	end
