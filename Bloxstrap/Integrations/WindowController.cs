@@ -1,4 +1,5 @@
 ﻿using Bloxstrap.Models.BloxstrapRPC;
+using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using Windows.Win32.Foundation;
@@ -348,9 +349,7 @@ namespace Bloxstrap.Integrations
                 !enabled &&
                 message.Command != "RequestWindowPermission" &&
                 message.Command != "SetWindowTitle" &&
-                message.Command != "StartWindow" &&
-                message.Command != "SetDesktopVisibility" &&
-                message.Command != "SetWallpaper"
+                message.Command != "StartWindow"
             ) { return; }
 
             // NOTE: if a command has multiple aliases, use the first one that shows up, the others are just for compatibility and may be removed in the future
@@ -502,12 +501,13 @@ namespace Bloxstrap.Integrations
                     }
                 case "SetWallpaper":
                     {
+                        if (!App.Settings.Prop.WallpaperControlEnabled) { return; }
 
                         WallpaperMessage? wallpaperData = Deserialize<WallpaperMessage>(message);
 
                         if (wallpaperData is null)
                         {
-                            App.Logger.WriteLine(LOG_IDENT, "grtfeu");
+                            App.Logger.WriteLine(LOG_IDENT, "WallpaperData returned null or is not a valid format");
                             return;
                         }
 
@@ -517,6 +517,7 @@ namespace Bloxstrap.Integrations
                     }
                 case "SetDesktopVisibility":
                     {
+                        if (!App.Settings.Prop.DesktopControlEnabled) { return; }
                         DesktopVisibilityMessage? desktopData = Deserialize<DesktopVisibilityMessage>(message);
 
                         if (desktopData is null)
@@ -591,6 +592,80 @@ namespace Bloxstrap.Integrations
                     {
                         return;
                     }
+            }
+        }
+
+        private void SetTaskbarVisibility(bool visible)
+        {
+            IntPtr taskbar = FindWindow("Shell_TrayWnd", null);
+
+            if (taskbar != IntPtr.Zero)
+                ShowWindow(taskbar, visible ? SW_SHOW : SW_HIDE);
+
+            IntPtr secondary = IntPtr.Zero;
+
+            while ((secondary = FindWindowEx(IntPtr.Zero, secondary, "Shell_SecondaryTrayWnd", null)) != IntPtr.Zero)
+            {
+                ShowWindow(secondary, visible ? SW_SHOW : SW_HIDE);
+            }
+        }
+
+        private void SetDesktopIconsVisibility(bool visible)
+        {
+            IntPtr desktopWnd;
+
+            IntPtr progman = FindWindow("Progman", null);
+            desktopWnd = FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null);
+
+            if (desktopWnd == IntPtr.Zero)
+            {
+                IntPtr workerw = IntPtr.Zero;
+
+                do
+                {
+                    workerw = FindWindowEx(IntPtr.Zero, workerw, "WorkerW", null);
+                    desktopWnd = FindWindowEx(workerw, IntPtr.Zero, "SHELLDLL_DefView", null);
+                }
+                while (workerw != IntPtr.Zero && desktopWnd == IntPtr.Zero);
+            }
+
+            if (desktopWnd != IntPtr.Zero)
+            {
+                // icon stuff
+                IntPtr listView = FindWindowEx(desktopWnd, IntPtr.Zero, "SysListView32", "FolderView");
+
+                if (listView != IntPtr.Zero)
+                    ShowWindow(listView, visible ? SW_SHOWNA : SW_HIDE);
+            }
+        }
+
+        private void ResetDesktopVisibility()
+        {
+            if (_changedTaskbarVisibility)
+            {
+                SetTaskbarVisibility(true);
+                _changedTaskbarVisibility = false;
+                _desktopTaskbarVisible = true;
+            }
+
+            if (_changedDesktopIconsVisibility)
+            {
+                SetDesktopIconsVisibility(true);
+                _changedDesktopIconsVisibility = false;
+                _desktopIconsVisible = true;
+            }
+        }
+
+        private void ResetWallpaper()
+        {
+            if (_changedWallpaper)
+            {
+                WallpaperController.SetWallpaper(new WallpaperMessage
+                {
+                    Reset = true
+                });
+
+                _changedWallpaper = false;
             }
         }
         public void Dispose()
@@ -686,80 +761,5 @@ namespace Bloxstrap.Integrations
 
         [DllImport("user32.dll")]
         private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-
-        // taskbar desktop n shit here
-        private void SetTaskbarVisibility(bool visible)
-        {
-            IntPtr taskbar = FindWindow("Shell_TrayWnd", null);
-
-            if (taskbar != IntPtr.Zero)
-                ShowWindow(taskbar, visible ? SW_SHOW : SW_HIDE);
-
-            IntPtr secondary = IntPtr.Zero;
-
-            while ((secondary = FindWindowEx(IntPtr.Zero, secondary, "Shell_SecondaryTrayWnd", null)) != IntPtr.Zero)
-            {
-                ShowWindow(secondary, visible ? SW_SHOW : SW_HIDE);
-            }
-        }
-
-        private void SetDesktopIconsVisibility(bool visible)
-        {
-            IntPtr desktopWnd;
-
-            IntPtr progman = FindWindow("Progman", null);
-            desktopWnd = FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null);
-
-            if (desktopWnd == IntPtr.Zero)
-            {
-                IntPtr workerw = IntPtr.Zero;
-
-                do
-                {
-                    workerw = FindWindowEx(IntPtr.Zero, workerw, "WorkerW", null);
-                    desktopWnd = FindWindowEx(workerw, IntPtr.Zero, "SHELLDLL_DefView", null);
-                }
-                while (workerw != IntPtr.Zero && desktopWnd == IntPtr.Zero);
-            }
-
-            if (desktopWnd != IntPtr.Zero)
-            {
-                // icon stuff
-                IntPtr listView = FindWindowEx(desktopWnd, IntPtr.Zero, "SysListView32", "FolderView");
-
-                if (listView != IntPtr.Zero)
-                    ShowWindow(listView, visible ? SW_SHOWNA : SW_HIDE);
-            }
-        }
-
-        private void ResetDesktopVisibility()
-        {
-            if (_changedTaskbarVisibility)
-            {
-                SetTaskbarVisibility(true);
-                _changedTaskbarVisibility = false;
-                _desktopTaskbarVisible = true;
-            }
-
-            if (_changedDesktopIconsVisibility)
-            {
-                SetDesktopIconsVisibility(true);
-                _changedDesktopIconsVisibility = false;
-                _desktopIconsVisible = true;
-            }
-        }
-
-        private void ResetWallpaper()
-        {
-            if (_changedWallpaper)
-            {
-                WallpaperController.SetWallpaper(new WallpaperMessage
-                {
-                    Reset = true
-                });
-
-                _changedWallpaper = false;
-            }
-        }
     }
 }
