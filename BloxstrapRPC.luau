@@ -1,8 +1,3 @@
---[[ REMOVE THIS LINE AFTER
-Wallpaper + Taskbar updates were made by Sosa, and a bit edited by me (Runa! :3)
-]]
-
-
 -- BloxstrapRPC Helper Module v1.0.1
 -- Written by pizzaboxer (@xtremeguy2256) and Epix (@ElusiveEpix)
 -- Types reflected from https://github.com/pizzaboxer/bloxstrap/tree/main/Bloxstrap/Models/BloxstrapRPC
@@ -168,29 +163,27 @@ end
 local bloxstrapEnabledContent = "rbxasset://bloxstrap/enabled.png";
 local gameAllowedContent = `rbxasset://bloxstrap/{game.GameId}.png`;
 
---Being forced until brandon enabled EditableImages (IF he can)
+local function onWindowDataLoaded()
+	local editable;
+	local windowSettings;
+	pcall(function()
+		editable = game:GetService("AssetService"):CreateEditableImageAsync(Content.fromUri(gameAllowedContent));
+		windowSettings = editable:ReadPixelsBuffer(Vector2.zero,Vector2.new(3,1))
+	end)
 
---local function onWindowDataLoaded()
---	local editable;
---	local windowSettings;
---	pcall(function()
---		editable = game:GetService("AssetService"):CreateEditableImageAsync(Content.fromUri(gameAllowedContent));
---		windowSettings = editable:ReadPixelsBuffer(Vector2.zero,Vector2.new(3,1))
---	end)
-
---	if windowSettings then
---		pcall(function()
---			BloxstrapRPC.WindowSettings = {
---				Control = buffer.readu8(windowSettings,0+3) == 255;
---				Title = buffer.readu8(windowSettings,4+3) == 255;
---				Transparency = buffer.readu8(windowSettings,8+3) == 255;
---			}
---			print("[Debug] Imported settings from Bloxstrap",buffer.readu8(windowSettings,0+3) == 255,buffer.readu8(windowSettings,4+3) == 255,buffer.readu8(windowSettings,8+3) == 255)
---		end)
---		editable:Destroy();
---		editable = nil;
---	end
---end
+	if windowSettings then
+		pcall(function()
+			BloxstrapRPC.WindowSettings = {
+				Control = buffer.readu8(windowSettings,0+3) == 255;
+				Title = buffer.readu8(windowSettings,4+3) == 255;
+				Transparency = buffer.readu8(windowSettings,8+3) == 255;
+			}
+			print("[Debug] Imported settings from Bloxstrap",buffer.readu8(windowSettings,0+3) == 255,buffer.readu8(windowSettings,4+3) == 255,buffer.readu8(windowSettings,8+3) == 255)
+		end)
+		editable:Destroy();
+		editable = nil;
+	end
+end
 
 ContentProvider:PreloadAsync({bloxstrapEnabledContent,gameAllowedContent});
 ContentProvider:Preload(bloxstrapEnabledContent);
@@ -199,6 +192,12 @@ ContentProvider:Preload(gameAllowedContent);
 BloxstrapRPC.UsesBloxstrap = ContentProvider:GetAssetFetchStatus(bloxstrapEnabledContent) == Enum.AssetFetchStatus.Success;
 BloxstrapRPC.AllowsWindowControl = BloxstrapRPC.UsesBloxstrap and (ContentProvider:GetAssetFetchStatus(gameAllowedContent) == Enum.AssetFetchStatus.Success);
 BloxstrapRPC.WindowStarted = false; -- Replicates the method whitelist on window control methods when StartWindow is not called (only allows SetTitle)
+
+BloxstrapRPC.WindowSettings = {
+	Control = nil;
+	Title = nil;
+	Transparency = nil;
+}
 
 if BloxstrapRPC.UsesBloxstrap and not BloxstrapRPC.AllowsWindowControl then
 	local fetchStatusChanged : RBXScriptConnection; fetchStatusChanged = ContentProvider:GetAssetFetchStatusChangedSignal(gameAllowedContent):Connect(function(status : Enum.AssetFetchStatus)
@@ -209,7 +208,7 @@ if BloxstrapRPC.UsesBloxstrap and not BloxstrapRPC.AllowsWindowControl then
 			BloxstrapRPC.AllowsWindowControl = true;
 			print("[Bloxstrap] Allowed window control");
 
-			--		onWindowDataLoaded();
+			onWindowDataLoaded();
 		end
 	end)
 end
@@ -406,11 +405,6 @@ function BloxstrapRPC.SetWallpaper(data: WallpaperData)
 		return
 	end
 
-	--[[ I ran outta room, wallpapers are set by typing "1.png" into the "asset" variable of SetWallpaper (change to the actual image name duhh)
-	Soon this'll be updated so it downloads the images from RBLX assetIds the first time it is called, and then have it read from appdata from then on, since it is already saved.
-	I'm tired man fuck ts
-	]]
-
 	if data.style ~= nil and not VALID_WALLPAPER_STYLES[data.style] then
 		data.style = "Fill"
 	elseif data.style == nil then
@@ -453,13 +447,13 @@ end
 
 for _,func in {"ShowPopup","RemoveWindows","CreateWindow","SetWindowDefault","ShowWindow","SetWindowColor"} do
 	BloxstrapRPC[func] = function()
-		warn("THIS FUNCTION DOES NOT WORK OUTSIDE OF A FORK OF THE FORK!!!!")
+		warn(`[BloxstrapRPC :: {func}] This function is not functional yet`)
 	end
 end
 
 BloxstrapRPC.RestoreWindow = BloxstrapRPC.ResetWindow;
 
 BloxstrapRPC.ResetTitle();
---BloxstrapRPC.ResetRPC(true);
+BloxstrapRPC.ResetRPC(true);
 
 return BloxstrapRPC;

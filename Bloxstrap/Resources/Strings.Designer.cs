@@ -3473,7 +3473,7 @@ namespace Bloxstrap.Resources {
         }
 
         /// <summary>
-        /// am i supposed to write a summary??
+        ///   Recherche une chaîne localisée semblable à Wallpaper Changes
         /// </summary>
         public static string Menu_Integrations_WallpaperControl_Title {
             get {
@@ -3482,7 +3482,7 @@ namespace Bloxstrap.Resources {
         }
 
         /// <summary>
-        /// am i supposed to write a summary??
+        ///   Recherche une chaîne localisée semblable à Allows the selected game to change the desktop's wallpaper
         /// </summary>
         public static string Menu_Integrations_WallpaperControl_Description {
             get {
@@ -3491,7 +3491,7 @@ namespace Bloxstrap.Resources {
         }
 
         /// <summary>
-        /// am i supposed to write a summary??
+        ///   Recherche une chaîne localisée semblable à Desktop Control
         /// </summary>
         public static string Menu_Integrations_DesktopControl_Title {
             get {
@@ -3500,7 +3500,7 @@ namespace Bloxstrap.Resources {
         }
 
         /// <summary>
-        /// am i supposed to write a summary??
+        ///   Recherche une chaîne localisée semblable à Allows the selected game to hide and unhide the Taskbar and Desktop Icons
         /// </summary>
         public static string Menu_Integrations_DesktopControl_Description {
             get {
