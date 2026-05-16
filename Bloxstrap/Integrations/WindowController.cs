@@ -346,12 +346,14 @@ namespace Bloxstrap.Integrations
 
             if (!curUniverseAllowed && (message.Command != "RequestWindowPermission" || prevUniverse == _activityWatcher.Data.UniverseId) && message.Command != "SetWindowTitle") { return; }
 
+
+            
             // to avoid people saving the windows position or size to another place when startwindow is called later
             if (
                 !enabled &&
                 message.Command != "RequestWindowPermission" &&
                 message.Command != "SetWindowTitle" &&
-                message.Command != "StartWindow"
+                message.Command != "StartWindow" 
             ) { return; }
 
             // NOTE: if a command has multiple aliases, use the first one that shows up, the others are just for compatibility and may be removed in the future
@@ -503,7 +505,7 @@ namespace Bloxstrap.Integrations
                     }
                 case "SetWallpaper":
                     {
-                        if (!App.Settings.Prop.WallpaperControlEnabled) { return; }
+                        if (!App.Settings.Prop.WallpaperControlEnabled) { break; }
 
                         WallpaperMessage? wallpaperData = Deserialize<WallpaperMessage>(message);
 
@@ -519,7 +521,7 @@ namespace Bloxstrap.Integrations
                     }
                 case "SetDesktopVisibility":
                     {
-                        if (!App.Settings.Prop.DesktopControlEnabled) { return; }
+                        if (!App.Settings.Prop.DesktopControlEnabled) { break; }
                         DesktopVisibilityMessage? desktopData = Deserialize<DesktopVisibilityMessage>(message);
 
                         if (desktopData is null)
