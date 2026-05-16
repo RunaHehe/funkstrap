@@ -1517,7 +1517,7 @@ Would you like to upgrade your currently installed version?
     <value>Wallpaper Changes</value>
   </data>
   <data name="Menu.Integrations.WallpaperControl.Description" xml:space="preserve">
-    <value>Allows the selected game to change the desktop's wallpaper</value>
+    <value>Allows the selected game to change the desktop's wallpaper.</value>
   </data>
   <data name="Menu.Integrations.DesktopControl.Title" xml:space="preserve">
     <value>Desktop Control</value>
