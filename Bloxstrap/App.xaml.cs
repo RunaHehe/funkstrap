@@ -71,7 +71,8 @@ namespace Bloxstrap
         private static string? _webUrl = null;
         public static string WebUrl
         {
-            get {
+            get
+            {
                 if (_webUrl != null)
                     return _webUrl;
 
@@ -81,7 +82,7 @@ namespace Bloxstrap
                 return url;
             }
         }
-        
+
         public static void Terminate(ErrorCode exitCode = ErrorCode.ERROR_SUCCESS)
         {
             int exitCodeNum = (int)exitCode;
@@ -250,7 +251,7 @@ namespace Bloxstrap
             using var uninstallKey = Registry.CurrentUser.OpenSubKey(UninstallKey);
             string? installLocation = null;
             bool fixInstallLocation = false;
-            
+
             if (uninstallKey?.GetValue("InstallLocation") is string value)
             {
                 if (Directory.Exists(value))
