@@ -278,7 +278,9 @@
                 {
                     Match match = Regex.Match(logMessage, GameJoinedEntryPattern);
 
-                    if (match.Groups.Count != 2 || match.Groups[1].Value != Data.MachineAddress)
+                    bool isAddressError = logMessage.Contains("UNASSIGNED_SYSTEM_ADDRESS");
+
+                    if ((match.Groups.Count != 2 || match.Groups[1].Value != Data.MachineAddress) && !isAddressError)
                     {
                         App.Logger.WriteLine(LOG_IDENT, $"Failed to assert format for game joined entry");
                         App.Logger.WriteLine(LOG_IDENT, logMessage);
